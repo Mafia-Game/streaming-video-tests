@@ -8,74 +8,115 @@
     <script defer src="/bundle.js"></script>
     <script src="https://rawgit.com/muaz-khan/RTCMultiConnection/master/dist/RTCMultiConnection.min.js"></script>
     <script src="https://rtcmulticonnection.herokuapp.com/socket.io/socket.io.js"></script>
-    <script>
-        const connection1 = new RTCMultiConnection();
-        const connection2 = new RTCMultiConnection ();
-
-        function addEvent (event, connection) {
-          if(event.mediaElement) {
-              event.mediaElement.muted = true;
-              delete event.mediaElement;
-            }
-
-            var video = document.createElement('video');
-            if(event.type === 'local') {
-              video.muted = true;
-            }
-            video.src = URL.createObjectURL(event.stream);
-            connection.videosContainer.appendChild(video);
-          }
-
-        function setup (connection) {
-          connection.socketURL = 'https://shielded-chamber-83691.herokuapp.com/';
-            connection.session = {
-              audio: true,
-              video: true,
-              data: true
-            };
-            connection.sdpConstraints.mandatory = {
-                OfferToReceiveAudio: true,
-                OfferToReceiveVideo: true
-            };
-        
-            connection.onstream = function (event) {
-              console.log("onStream triggered")
-              addEvent(event, connection)
-            }
-
-            connection.onNewParticipant = function (participantId, userPreferences) {
-              userPreferences.localPeerSdpConstraints.OfferToReceiveAudio = true;
-	            userPreferences.localPeerSdpConstraints.OfferToReceiveVideo = true;
-
-	            userPreferences.dontAttachStream = false; // according to situation
-	            userPreferences.dontGetRemoteStream = false;  // according to situation
-
-	// below line must be included. Above all lines are optional.
-	// if below line is NOT included; "join-request" will be considered rejected.
-              connection.acceptParticipationRequest(participantId, userPreferences);
-              console.log("accepting participant");
+    <link rel="stylesheet" href="./getHTMLMediaElement.css"/>
+    <script src="./getHTMLMediaElement.js"></script>
     
-              addEvent(event, connection)
-            }
-        }
-        
-        setup(connection1);
-        //setup(connection2);
-        
-        
-    
-        //connection1.open("abcdef");
-        connection1.openOrJoin('roomid', function(isRoomExists, roomid) {
-          if(!isRoomExists) console.log('opened the room');
-          else console.log('joined the room');
-        });
-        //connection2.join("abcdef");
-        //console.log("peers", connection1.peers.getLength())
-      </script>
+ 
   </head>
   <body>
     <div id="app"></div>
+    <div id="videos-container"></div>
   </body>
+  <script>
+      const connection1 = new RTCMultiConnection();
+      const connection2 = new RTCMultiConnection ();
+
+      function addEvent (event, connection) {
+        console.log("adding event")
+        const existing = document.getElementById(event.streamid)
+        if (existing && existing.parentNode) {
+          existing.parentNode.removeChild(existing);
+        }
+        if(event.mediaElement) {
+            event.mediaElement.muted = true;
+            delete event.mediaElement;
+          }
+
+          var video = document.createElement('video');
+          video.controls = true;
+          if(event.type === 'local') {
+            video.muted = true;
+          }
+          console.log("right before srcObj")
+          video.src = URL.createObjectURL(event.stream);
+          console.log("got this far")
+          const width = parseInt(connection.videosContainer.clientWidth/2) -20;
+          //const width = 300;
+          console.log('width', width)
+          const mediaElement = getHTMLMediaElement(video, {
+            title: event.userid,
+            buttons: ['full-screen'],
+            width: width,
+            showOnMouseEnter: false
+          })
+          console.log("About to add video to screen", connection.videosContainer)
+          connection.videosContainer.appendChild(mediaElement);
+          mediaElement.id = event.streamid;
+          setTimeOut(() => {
+            mediaEleemnt.media.play();
+          }, 5000);
+          
+        }
+
+
+      function setup (connection) {
+        connection.socketURL = 'http://localhost:8080/';
+          connection.session = {
+            audio: true,
+            video: true
+          };
+          connection.sdpConstraints.mandatory = {
+              OfferToReceiveAudio: true,
+              OfferToReceiveVideo: true
+          };
+
+          // connection.enableScalableBroadcast = true;
+          // connection.maxRelayLimitPerUser=1;
+          // connection.autoCloseEntireSession = true;
+          // connection.singleBroadcastAttendees = 3;
+          connection.videosContainer = document.getElementById("videos-container");
+          connection.onstream = function (event) {
+            console.log("onStream triggered")
+            addEvent(event, connection)
+          }
+
+          connection.onstreamended = function (event) {
+            console.log(event.streamid)
+            const mediaElement = document.getElementById(event.streamid);
+            console.log (mediaElement)
+            if (mediaElement) {
+                mediaElement.parentNode.removeChild(mediaElement);
+            }
+          }
+
+          connection.onNewParticipant = function (participantId, userPreferences) {
+            userPreferences.localPeerSdpConstraints.OfferToReceiveAudio = true;
+            userPreferences.localPeerSdpConstraints.OfferToReceiveVideo = true;
+
+            userPreferences.dontAttachStream = false; // according to situation
+            userPreferences.dontGetRemoteStream = false;  // according to situation
+
+// below line must be included. Above all lines are optional.
+// if below line is NOT included; "join-request" will be considered rejected.
+            connection.acceptParticipationRequest(participantId, userPreferences);
+            console.log("accepting participant");
   
+            addEvent(event, connection)
+          }
+      }
+      
+      setup(connection1);
+      //setup(connection2);
+      
+      
+  
+      //connection1.open("abcdef");
+      connection1.openOrJoin('roomid', function(isRoomExists, roomid) {
+        if(!isRoomExists) console.log('opened the room');
+        else console.log('joined the room');
+      });
+      //connection2.join("abcdef");
+      //console.log("peers", connection1.peers.getLength())
+    </script>
 </html>
 
