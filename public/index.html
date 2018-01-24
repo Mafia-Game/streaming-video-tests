@@ -6,9 +6,76 @@
     <title>Boilermaker</title>
     <link rel="stylesheet" href="/style.css" />
     <script defer src="/bundle.js"></script>
+    <script src="https://rawgit.com/muaz-khan/RTCMultiConnection/master/dist/RTCMultiConnection.min.js"></script>
+    <script src="https://rtcmulticonnection.herokuapp.com/socket.io/socket.io.js"></script>
+    <script>
+        const connection1 = new RTCMultiConnection();
+        const connection2 = new RTCMultiConnection ();
+
+        function addEvent (event, connection) {
+          if(event.mediaElement) {
+              event.mediaElement.muted = true;
+              delete event.mediaElement;
+            }
+
+            var video = document.createElement('video');
+            if(event.type === 'local') {
+              video.muted = true;
+            }
+            video.src = URL.createObjectURL(event.stream);
+            connection.videosContainer.appendChild(video);
+          }
+
+        function setup (connection) {
+          connection.socketURL = 'http://localhost:8080/';
+            connection.session = {
+              audio: true,
+              video: true,
+              data: true
+            };
+            connection.sdpConstraints.mandatory = {
+                OfferToReceiveAudio: true,
+                OfferToReceiveVideo: true
+            };
+        
+            connection.onstream = function (event) {
+              console.log("onStream triggered")
+              addEvent(event, connection)
+            }
+
+            connection.onNewParticipant = function (participantId, userPreferences) {
+              userPreferences.localPeerSdpConstraints.OfferToReceiveAudio = true;
+	            userPreferences.localPeerSdpConstraints.OfferToReceiveVideo = true;
+
+	            userPreferences.dontAttachStream = false; // according to situation
+	            userPreferences.dontGetRemoteStream = false;  // according to situation
+
+	// below line must be included. Above all lines are optional.
+	// if below line is NOT included; "join-request" will be considered rejected.
+              connection.acceptParticipationRequest(participantId, userPreferences);
+              console.log("accepting participant");
+    
+              addEvent(event, connection)
+            }
+        }
+        
+        setup(connection1);
+        //setup(connection2);
+        
+        
+    
+        //connection1.open("abcdef");
+        connection1.openOrJoin('roomid', function(isRoomExists, roomid) {
+          if(!isRoomExists) console.log('opened the room');
+          else console.log('joined the room');
+        });
+        //connection2.join("abcdef");
+        //console.log("peers", connection1.peers.getLength())
+      </script>
   </head>
   <body>
     <div id="app"></div>
   </body>
+  
 </html>
 
