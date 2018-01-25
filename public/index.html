@@ -66,8 +66,8 @@
 
       function setup (connection) {
         connection.autoCloseEntireSession = false;
-        //connection.socketURL = 'https://shielded-chamber-83691.herokuapp.com/';
-        connection.socketURL = 'localhost:8080/';
+        connection.socketURL = 'https://shielded-chamber-83691.herokuapp.com/';
+        //connection.socketURL = 'localhost:8080/';
 
         connection.socketMessageEvent='getPublicModerators-demo'
 
@@ -113,12 +113,12 @@
       
       setup(connection1);
       //setup(connection2);
-      connection1.getPublicModerators(function(array) {
-              console.log("public moderators: ", array)    
-                    array.forEach(function(moderator) {
-                        console.log("public moderator", moderator);
-                    })
-                  });
+      // connection1.getPublicModerators(function(array) {
+      //         console.log("public moderators: ", array)    
+      //               array.forEach(function(moderator) {
+      //                   console.log("public moderator", moderator);
+      //               })
+      //             });
       connection1.checkPresence("abcdef", function(isRoomExists) {
         if (isRoomExists) {
           console.log("JOINING")
@@ -128,7 +128,7 @@
         } else {
           console.log("OPENING")
           connection1.open ("abcdef", true);
-          
+          //connection1.join("abcdef")
         }
       })
 
