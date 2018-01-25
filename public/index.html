@@ -52,6 +52,7 @@
           console.log("About to add video to screen", connection.videosContainer)
           connection.videosContainer.appendChild(mediaElement);
           mediaElement.id = event.streamid;
+          //mediaEleemnt.media.play();
           setTimeOut(() => {
             mediaEleemnt.media.play();
           }, 5000);
@@ -61,7 +62,21 @@
 
       function setup (connection) {
         connection.socketURL = 'https://shielded-chamber-83691.herokuapp.com/';
-          connection.session = {
+        //connection.socketURL = 'localhost:8080/';
+
+        connection.socketMessageEvent='getPublicModerators-demo'
+
+        connection.processSdp = function(sdp) {
+            sdp = BandwidthHandler.setApplicationSpecificBandwidth(sdp, connection.bandwidth, !!connection.session.screen);
+            sdp = BandwidthHandler.setVideoBitrates(sdp, {
+                min: 30,
+                max: 50
+            });
+            sdp = BandwidthHandler.setOpusAttributes(sdp);
+            return sdp;
+        };
+          
+        connection.session = {
             audio: true,
             video: true
           };
@@ -69,54 +84,34 @@
               OfferToReceiveAudio: true,
               OfferToReceiveVideo: true
           };
-
-          // connection.enableScalableBroadcast = true;
-          // connection.maxRelayLimitPerUser=1;
-          // connection.autoCloseEntireSession = true;
-          // connection.singleBroadcastAttendees = 3;
           connection.videosContainer = document.getElementById("videos-container");
           connection.onstream = function (event) {
-            console.log("onStream triggered")
             addEvent(event, connection)
           }
-
           connection.onstreamended = function (event) {
-            console.log(event.streamid)
+            //console.log(event.streamid)
             const mediaElement = document.getElementById(event.streamid);
-            console.log (mediaElement)
+            //console.log (mediaElement)
             if (mediaElement) {
                 mediaElement.parentNode.removeChild(mediaElement);
             }
           }
 
-          connection.onNewParticipant = function (participantId, userPreferences) {
-            userPreferences.localPeerSdpConstraints.OfferToReceiveAudio = true;
-            userPreferences.localPeerSdpConstraints.OfferToReceiveVideo = true;
 
-            userPreferences.dontAttachStream = false; // according to situation
-            userPreferences.dontGetRemoteStream = false;  // according to situation
-
-// below line must be included. Above all lines are optional.
-// if below line is NOT included; "join-request" will be considered rejected.
-            connection.acceptParticipationRequest(participantId, userPreferences);
-            console.log("accepting participant");
-  
-            addEvent(event, connection)
-          }
       }
       
       setup(connection1);
       //setup(connection2);
       
-      
+      connection1.checkPresence("abcdef", function(isRoomExists) {
+        if (isRoomExists) {
+          connection1.join("abcdef")
+        } else {
+          connection1.open ("abcdef", true);
+        }
+      })
   
-      //connection1.open("abcdef");
-      connection1.openOrJoin('roomid', function(isRoomExists, roomid) {
-        if(!isRoomExists) console.log('opened the room');
-        else console.log('joined the room');
-      });
-      //connection2.join("abcdef");
-      //console.log("peers", connection1.peers.getLength())
+
     </script>
 </html>
 
