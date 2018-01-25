@@ -23,46 +23,51 @@
 
       function addEvent (event, connection) {
         console.log("adding event")
-        const existing = document.getElementById(event.streamid)
-        if (existing && existing.parentNode) {
-          existing.parentNode.removeChild(existing);
-        }
-        if(event.mediaElement) {
-            event.mediaElement.muted = true;
-            delete event.mediaElement;
-          }
+        // const existing = document.getElementById(event.streamid)
+        // if (existing && existing.parentNode) {
+        //   existing.parentNode.removeChild(existing);
+        // }
+        // if(event.mediaElement) {
+        //     event.mediaElement.muted = true;
+        //     delete event.mediaElement;
+        //   }
 
-          var video = document.createElement('video');
-          video.controls = true;
-          if(event.type === 'local') {
-            video.muted = true;
-          }
-          console.log("right before srcObj")
-          video.src = URL.createObjectURL(event.stream);
-          console.log("got this far")
-          //const width = parseInt(connection.videosContainer.clientWidth/2) -20;
-          const width = 120;
-          console.log('width', width)
-          const mediaElement = getHTMLMediaElement(video, {
-            title: event.userid,
-            buttons: ['full-screen'],
-            width: width,
-            showOnMouseEnter: false
-          })
+        //   var video = document.createElement('video');
+        //   video.controls = true;
+        //   if(event.type === 'local') {
+        //     video.muted = true;
+        //   }
+        //   console.log("right before srcObj")
+        //   //video.src = URL.createObjectURL(event.stream);
+        //   video.srcObject = event.stream;
+        //   console.log("got this far")
+        //   //const width = parseInt(connection.videosContainer.clientWidth/2) -20;
+        //   const width = 120;
+        //   console.log('width', width)
+        //   const mediaElement = getHTMLMediaElement(video, {
+        //     title: event.userid,
+        //     buttons: ['full-screen'],
+        //     width: width,
+        //     showOnMouseEnter: false
+        //   })
           console.log("About to add video to screen", connection.videosContainer)
-          connection.videosContainer.appendChild(mediaElement);
-          mediaElement.id = event.streamid;
-          //mediaEleemnt.media.play();
+          event.mediaElement.width=120;
+          connection.videosContainer.appendChild(event.mediaElement);
+          event.mediaElement.id = event.streamid;
+          event.mediaElement.play();
+          console.log("mediaElement is set to play")
           setTimeOut(() => {
-            mediaEleemnt.media.play();
+            console.log("timeout is triggered")
+            event.mediaElement.play();
           }, 5000);
           
         }
 
 
       function setup (connection) {
-        connection.socketURL = 'https://shielded-chamber-83691.herokuapp.com/';
-        //connection.socketURL = 'localhost:8080/';
+        connection.autoCloseEntireSession = false;
+        //connection.socketURL = 'https://shielded-chamber-83691.herokuapp.com/';
+        connection.socketURL = 'localhost:8080/';
 
         connection.socketMessageEvent='getPublicModerators-demo'
 
@@ -91,25 +96,55 @@
           connection.onstreamended = function (event) {
             //console.log(event.streamid)
             const mediaElement = document.getElementById(event.streamid);
+     
             //console.log (mediaElement)
             if (mediaElement) {
                 mediaElement.parentNode.removeChild(mediaElement);
             }
           }
 
-
+          connection.onUserStatusChanged = function(event) {
+            console.log ("User status changed!!!", event)
+            if (connection.userType == "participant" && event.status === 'offline') { //manually set by me for all participants using a cookie
+                reCheckRoomPresence(); //window.location.reload(false); this works on chrome/firefox
+            }
+        };
       }
       
       setup(connection1);
       //setup(connection2);
-      
+      connection1.getPublicModerators(function(array) {
+              console.log("public moderators: ", array)    
+                    array.forEach(function(moderator) {
+                        console.log("public moderator", moderator);
+                    })
+                  });
       connection1.checkPresence("abcdef", function(isRoomExists) {
         if (isRoomExists) {
-          connection1.join("abcdef")
+          console.log("JOINING")
+          connection1.join("abcdef");
+          //connection1.join("abcdef")
+          //connection1.becomePublicModerator();
         } else {
+          console.log("OPENING")
           connection1.open ("abcdef", true);
+          
         }
       })
+
+      
+
+function reCheckRoomPresence(){
+    var findWhenCustomerReconnectsToTheRoom = setInterval(function(){
+        connection1.checkPresence("abcdef", function(isRoomExists) {
+            if(isRoomExists) {
+                connection1.join("abcdef"); //sessionDetails.token is room-id
+                clearInterval(findWhenCustomerReconnectsToTheRoom);
+                return;
+            }
+        });
+    }, 1);
+}
   
 
     </script>
